@@ -297,7 +297,7 @@ def CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype):
 	import cuba2D as cub
 	
 	cubState="on"
-	gssState="on"
+	gssState="off"
 	if cubState=="on":
 		# 1.1 Interpolate solution to cubature nodes 
 		cQ = numpy.zeros([cub.Ncub, glb.K, 4])
