@@ -163,31 +163,48 @@ def testGauss1(Ngauss=30):
 	
 	#Normals
 	gaussInit(Ngauss)
-	plt.figure(1)
-	plt.quiver(x.flatten(),y.flatten(),nx.flatten(),ny.flatten())
-	plt.title("Gaussian Normals at the boundaries 1")
+	if __name__=="__main__":
+		plt.figure(1)
+		plt.quiver(x.flatten(),y.flatten(),nx.flatten(),ny.flatten())
+		plt.title("Gaussian Normals at the boundaries 1")
 	
-	#Check Connectivity maps
-	plt.figure(2)
-	plt.plot(x.flatten()[mapM],y.flatten()[mapM],'o')
-	plt.title('Boundary elements mapM Gaussian' )
-	
-	plt.figure(3)
-	plt.plot(x.flatten()[mapM],y.flatten()[mapM],'o')
-	plt.title('Boundary elements mapP Gaussian')
-	
-	plt.figure(4)
-	plt.plot(x.flatten()[mapB],y.flatten()[mapB],'o')
-	plt.title('Physical boundary elements mapB Gaussian')
-	
-	plt.figure(5)
-	plt.quiver(x.flatten()[mapM],y.flatten()[mapM],nx.flatten(),ny.flatten())
-	plt.title("Gaussian Normals at the boundaries 2")
+		#Check Connectivity maps
+		plt.figure(2)
+		plt.plot(x.flatten()[mapM],y.flatten()[mapM],'o')
+		plt.title('Boundary elements mapM Gaussian' )
+		
+		plt.figure(3)
+		plt.plot(x.flatten()[mapM],y.flatten()[mapM],'o')
+		plt.title('Boundary elements mapP Gaussian')
+		
+		plt.figure(4)
+		plt.plot(x.flatten()[mapB],y.flatten()[mapB],'o')
+		plt.title('Physical boundary elements mapB Gaussian')
+		
+		plt.figure(5)
+		plt.quiver(x.flatten()[mapM],y.flatten()[mapM],nx.flatten(),ny.flatten())
+		plt.title("Gaussian Normals at the boundaries 2")
 
 	if abs(x.flatten()[mapM]-x.flatten()[mapP]).max()>0.000000001:
 		print "Maps aint correct!"
 	else:
 		print "Maps seem correct"
+
+	if abs(x.flatten()[mapM]-x.flatten()).max()>0.000000001:
+		print "MapM aint correct!"
+	else:
+		print "MapM seem correct"
+
+	if abs(nx.flatten()[mapM]-nx.flatten()).max()>0.000000001:
+		print "MapM aint correct!"
+	else:
+		print "MapM seem correct"
+
+	if abs(nx.flatten()[mapM]+nx.flatten()[mapP]).max()>0.000000001:
+		print "MapP aint correct!"
+	else:
+		print "MapP seem correct"
+
 	return()
 
 def testGauss2():

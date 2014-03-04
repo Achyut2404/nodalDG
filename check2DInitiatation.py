@@ -30,10 +30,11 @@ if glb.x.shape[0]!=glb.Np or glb.x.shape[1]!=glb.K or glb.y.shape[0]!=glb.Np or 
 	print "Error in shapes of x and y"
 else:
 	print "x and y shapes checked!"
-#Plot all points
-plt.figure(1)
-plt.title('All points')
-plt.plot(glb.x,glb.y,'o')
+if __name__ == "__main__":
+	#Plot all points
+	plt.figure(1)
+	plt.title('All points')
+	plt.plot(glb.x,glb.y,'o')
 print "x and y checked!"
 
 ###Check differentiation matrices
@@ -80,24 +81,34 @@ else:
 	print "Error in curl"
 
 ###Check Normals
-plt.figure(2)
-
-plt.quiver(glb.x.flatten()[glb.vmapM],glb.y.flatten()[glb.vmapM],glb.nx.flatten(),glb.ny.flatten())
-#plt.quiver(glb.x.flatten()[glb.vmapM].reshape([glb.Nfp,glb.Nfaces,glb.K])[:,0,0],glb.y.flatten()[glb.vmapM].reshape([glb.Nfp,glb.Nfaces,glb.K])[:,0,0],glb.nx[:,0][0:11].flatten(),glb.ny[:,0][0:11].flatten())
-plt.title("Normals at the boundaries")
+if __name__=="__main__":
+	plt.figure(2)
+	plt.quiver(glb.x.flatten()[glb.vmapM],glb.y.flatten()[glb.vmapM],glb.nx.flatten(),glb.ny.flatten())
+	plt.title("Normals at the boundaries")
 
 ###Check Connectivity maps
-plt.figure(3)
-plt.plot(glb.x.flatten()[glb.vmapM],glb.y.flatten()[glb.vmapM],'o')
-plt.title('Boundary elements mapM')
+# Check 1:
+if abs(glb.vmapM[glb.mapM]-glb.vmapM).max()>0.000001:
+	print "Error in maps vmapM"
+if abs(glb.vmapM[glb.mapP]-glb.vmapP).max()>0.000001:
+	print "Error in maps vmapP"
+if abs(glb.nx[mapM]+glb.nx[mapP]).max()>0.000001:
+	print "Error in mapM or mapP"
+if abs(glb.ny[mapM]+glb.ny[mapP]).max()>0.000001:
+	print "Error in mapM or mapP"
 
-plt.figure(4)
-plt.plot(glb.x.flatten()[glb.vmapM],glb.y.flatten()[glb.vmapM],'o')
-plt.title('Boundary elements mapP')
+if __name__=="__main__":
+	plt.figure(3)
+	plt.plot(glb.x.flatten()[glb.vmapM],glb.y.flatten()[glb.vmapM],'o')
+	plt.title('Boundary elements mapM')
 
-plt.figure(5)
-plt.plot(glb.x.flatten()[glb.vmapB],glb.y.flatten()[glb.vmapB],'o')
-plt.title('Physical boundary elements mapB')
+	plt.figure(4)
+	plt.plot(glb.x.flatten()[glb.vmapM],glb.y.flatten()[glb.vmapM],'o')
+	plt.title('Boundary elements mapP')
+
+	plt.figure(5)
+	plt.plot(glb.x.flatten()[glb.vmapB],glb.y.flatten()[glb.vmapB],'o')
+	plt.title('Physical boundary elements mapB')
 
 if abs(glb.x.flatten()[glb.vmapM]-glb.x.flatten()[glb.vmapP]).max()>0.000000001:
 	print "Some error in maps"

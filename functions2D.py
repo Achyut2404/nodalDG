@@ -431,29 +431,23 @@ def BuildMaps2D():
 	    D = (x1 -x2.transpose())**2 + (y1-y2.transpose())**2
 	    [idM, idP] = numpy.nonzero((abs(D)**0.5)<NODETOL*refd)
 	    vmapP[idM,f1,k1] = vidP[idP]
-	    mapP[idM,f1,k1] = idP + (f2)*Nfp+(k2)*Nfaces*Nfp
+	    mapP[idM,f1,k1] = mapM.reshape([Nfp,Nfaces,K])[idP,f2,k2]
 	
 	# reshape vmapM and vmapP to be vectors and create boundary node list
 	newvmapM=numpy.zeros([Nfaces,Nfp,K]).astype(int)
 	newvmapP=numpy.zeros([Nfaces,Nfp,K]).astype(int)
-	newmapM=numpy.zeros([Nfaces,Nfp,K]).astype(int)
-	newmapP=numpy.zeros([Nfaces,Nfp,K]).astype(int)
 	oldvmapM=vmapM.reshape([Nfp,Nfaces,K])
 	oldvmapP=vmapP.reshape([Nfp,Nfaces,K])
-	oldmapM=mapM.reshape([Nfp,Nfaces,K])
-	oldmapP=mapP.reshape([Nfp,Nfaces,K])
 	for i in range(Nfaces):
 		for j in range(Nfp):
 			for k in range(K):
 				newvmapM[i][j][k]=oldvmapM[j][i][k]
 				newvmapP[i][j][k]=oldvmapP[j][i][k]
-				newmapM[i][j][k]=oldmapM[j][i][k]
-				newmapP[i][j][k]=oldmapP[j][i][k]
 
 	vmapP = newvmapP.flatten()
 	vmapM = newvmapM.flatten()
-	mapP = newmapP.flatten()
-	mapM = newmapM.flatten()
+	mapP = mapP.flatten()
+	mapM = mapM.flatten()
 	mapB = numpy.nonzero(vmapP==vmapM)[0]
 	vmapB = vmapM[mapB]
 	return([mapM, mapP, vmapM, vmapP, vmapB, mapB])	
