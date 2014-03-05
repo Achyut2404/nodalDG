@@ -297,7 +297,7 @@ def CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype):
 	import cuba2D as cub
 	
 	cubState="on"
-	gssState="off"
+	gssState="on"
 	if cubState=="on":
 		# 1.1 Interpolate solution to cubature nodes 
 		cQ = numpy.zeros([cub.Ncub, glb.K, 4])
@@ -364,7 +364,7 @@ def CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype):
 		
 		# 2.5 Compute surface integral terms
 		for n in range(4):
-			rhsQ[:,:,n] = rhsQ[:,:,n] - gss.interp.transpose().dot(gss.W*flux[:,:,n])
+			rhsQ[:,:,n] = rhsQ[:,:,n] - gss.interp.transpose().dot(gss.W/2.*flux[:,:,n])
 	
 	if gssState=="off":
 		# 2. Compute surface contributions 

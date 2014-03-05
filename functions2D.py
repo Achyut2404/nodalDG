@@ -397,7 +397,7 @@ def BuildMaps2D():
 	vmapM   = numpy.zeros([Nfp, Nfaces, K]).astype(int)
 	vmapP   = numpy.zeros([Nfp, Nfaces, K]).astype(int)
 	mapM    = numpy.array(range(K*Nfp*Nfaces)).astype(int)
-	mapP = numpy.reshape(mapM, [Nfp, Nfaces, K]).astype(int)
+	mapP = numpy.reshape(mapM, [Nfaces,Nfp, K]).astype(int)
 	 
 	# find index of face nodes with respect to volume node ordering
 	for k1 in range(K):
@@ -431,7 +431,7 @@ def BuildMaps2D():
 	    D = (x1 -x2.transpose())**2 + (y1-y2.transpose())**2
 	    [idM, idP] = numpy.nonzero((abs(D)**0.5)<NODETOL*refd)
 	    vmapP[idM,f1,k1] = vidP[idP]
-	    mapP[idM,f1,k1] = mapM.reshape([Nfp,Nfaces,K])[idP,f2,k2]
+	    mapP[f1,idM,k1] = mapM.reshape([Nfaces,Nfp,K])[f2,idP,k2]
 	
 	# reshape vmapM and vmapP to be vectors and create boundary node list
 	newvmapM=numpy.zeros([Nfaces,Nfp,K]).astype(int)

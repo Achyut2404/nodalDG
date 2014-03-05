@@ -92,11 +92,10 @@ if abs(glb.vmapM[glb.mapM]-glb.vmapM).max()>0.000001:
 	print "Error in maps vmapM"
 if abs(glb.vmapM[glb.mapP]-glb.vmapP).max()>0.000001:
 	print "Error in maps vmapP"
-if abs(glb.nx[mapM]+glb.nx[mapP]).max()>0.000001:
+if abs(glb.nx.flatten()[numpy.delete(glb.mapM,glb.mapB)]+glb.nx.flatten()[numpy.delete(glb.mapP,glb.mapB)]).max()>0.000001:
 	print "Error in mapM or mapP"
-if abs(glb.ny[mapM]+glb.ny[mapP]).max()>0.000001:
+if abs(glb.ny.flatten()[numpy.delete(glb.mapM,glb.mapB)]+glb.ny.flatten()[numpy.delete(glb.mapP,glb.mapB)]).max()>0.000001:
 	print "Error in mapM or mapP"
-
 if __name__=="__main__":
 	plt.figure(3)
 	plt.plot(glb.x.flatten()[glb.vmapM],glb.y.flatten()[glb.vmapM],'o')

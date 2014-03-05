@@ -163,44 +163,43 @@ def testGauss1(Ngauss=30):
 	
 	#Normals
 	gaussInit(Ngauss)
-	if __name__=="__main__":
-		plt.figure(1)
-		plt.quiver(x.flatten(),y.flatten(),nx.flatten(),ny.flatten())
-		plt.title("Gaussian Normals at the boundaries 1")
+	plt.figure(1)
+	plt.quiver(x.flatten(),y.flatten(),nx.flatten(),ny.flatten())
+	plt.title("Gaussian Normals at the boundaries 1")
+
+	#Check Connectivity maps
+	plt.figure(2)
+	plt.plot(x.flatten()[mapM],y.flatten()[mapM],'o')
+	plt.title('Boundary elements mapM Gaussian' )
 	
-		#Check Connectivity maps
-		plt.figure(2)
-		plt.plot(x.flatten()[mapM],y.flatten()[mapM],'o')
-		plt.title('Boundary elements mapM Gaussian' )
-		
-		plt.figure(3)
-		plt.plot(x.flatten()[mapM],y.flatten()[mapM],'o')
-		plt.title('Boundary elements mapP Gaussian')
-		
-		plt.figure(4)
-		plt.plot(x.flatten()[mapB],y.flatten()[mapB],'o')
-		plt.title('Physical boundary elements mapB Gaussian')
-		
-		plt.figure(5)
-		plt.quiver(x.flatten()[mapM],y.flatten()[mapM],nx.flatten(),ny.flatten())
-		plt.title("Gaussian Normals at the boundaries 2")
+	plt.figure(3)
+	plt.plot(x.flatten()[mapM],y.flatten()[mapM],'o')
+	plt.title('Boundary elements mapP Gaussian')
+	
+	plt.figure(4)
+	plt.plot(x.flatten()[mapB],y.flatten()[mapB],'o')
+	plt.title('Physical boundary elements mapB Gaussian')
+	
+	plt.figure(5)
+	plt.quiver(x.flatten()[mapM.flatten()],y.flatten()[mapM.flatten()],nx.flatten(),ny.flatten())
+	plt.title("Gaussian Normals at the boundaries 2")
 
 	if abs(x.flatten()[mapM]-x.flatten()[mapP]).max()>0.000000001:
 		print "Maps aint correct!"
 	else:
 		print "Maps seem correct"
 
-	if abs(x.flatten()[mapM]-x.flatten()).max()>0.000000001:
+	if abs(x.flatten()[mapM.flatten()]-x.flatten()).max()>0.000000001:
 		print "MapM aint correct!"
 	else:
 		print "MapM seem correct"
 
-	if abs(nx.flatten()[mapM]-nx.flatten()).max()>0.000000001:
+	if abs(nx.flatten()[mapM.flatten()]-nx.flatten()).max()>0.000000001:
 		print "MapM aint correct!"
 	else:
 		print "MapM seem correct"
 
-	if abs(nx.flatten()[mapM]+nx.flatten()[mapP]).max()>0.000000001:
+	if abs(nx.flatten()[numpy.delete(mapM,mapB)]+nx.flatten()[numpy.delete(mapP,mapB)]).max()>0.000000001:
 		print "MapP aint correct!"
 	else:
 		print "MapP seem correct"
@@ -225,3 +224,33 @@ def testGauss2():
 	print (abs(x-glb.x.flatten()[glb.vmapM].reshape([glb.Nfaces*glb.Nfp,glb.K]))).max()
 	print (abs(y-glb.y.flatten()[glb.vmapM].reshape([glb.Nfaces*glb.Nfp,glb.K]))).max()
 	return()
+
+def testGauss3():
+	""" Check integration for arbitary fields"""
+	
+	# Initiate
+	import globalVar2D as glb
+	import check2DInitiatation
+	
+	gaussInit(30)
+	
+	# Check weight values
+	print "Errors in weights"
+	print abs(numpy.array(  [sum(W[0:Ng,el]) - (2*numpy.average(glb.sJ[0:glb.Nfp,el])) for el in range(glb.K)]  )).max()
+	print abs(numpy.array(  [sum(W[Ng:2*Ng,el]) - (2*numpy.average(glb.sJ[glb.Nfp:2*glb.Nfp,el])) for el in range(glb.K)]  )).max()
+	print abs(numpy.array(  [sum(W[2*Ng:3*Ng,el]) - (2*numpy.average(glb.sJ[2*glb.Nfp:3*glb.Nfp,el])) for el in range(glb.K)]  )).max()
+	
+	# find integration with old methodn
+	nflux = numpy.ones([glb.Nfp*glb.Nfaces,glb.K])
+	fluxRHS  = glb.LIFT.dot(glb.Fscale*nflux/2)
+	fluxRHS = numpy.linalg.inv(glb.V.dot(glb.V.transpose())).dot(fluxRHS)*glb.J
+	Iold = fluxRHS 
+	
+	# find integration with new method
+	fl = numpy.ones([Ng*glb.Nfaces, glb.K])	
+	If = interp.transpose().dot(W/2.*fl)
+	Inew = If
+
+	# Match values
+	print "Errors"
+	print abs(Iold-Inew).max()
