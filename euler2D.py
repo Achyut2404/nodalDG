@@ -283,7 +283,7 @@ def EulerLF2D(lnx, lny, QM, QP, gamma):
 	# Lift fluxes
 	flux=numpy.zeros(QP.shape)
 	for n in range(4):
-		flux[:,:,n] = lnx*(fP[:,:,n] + fM[:,:,n]) + lny*(gP[:,:,n] + gM[:,:,n]) + lemda*(QM[:,:,n] - QP[:,:,n])
+		flux[:,:,n] = (lnx*(fP[:,:,n] + fM[:,:,n]) + lny*(gP[:,:,n] + gM[:,:,n]) + lemda*(QM[:,:,n] - QP[:,:,n]))/2.
 	return(flux)
 
 def CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype):
@@ -315,7 +315,7 @@ def CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype):
 			dds = (cub.Ds.transpose()).dot(cub.W*(cub.sx*F[:,:,n] + cub.sy*G[:,:,n]))
 			rhsQ[:,:,n] = ddr + dds
 	
-	if cubState=="off":
+	if cubState=="of":
 		# 1. Compute volume contributions (NOW INDEPENDENT OF SURFACE TERMS)
 		gamma = 1.4
 		[F,G,rho,u,v,p] = EulerFluxes2D(Q, gamma)
@@ -364,9 +364,8 @@ def CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype):
 		
 		# 2.5 Compute surface integral terms
 		for n in range(4):
-			rhsQ[:,:,n] = rhsQ[:,:,n] - gss.interp.transpose().dot(gss.W/2.*flux[:,:,n])
-	
-	if gssState=="off":
+			rhsQ[:,:,n] = rhsQ[:,:,n] - gss.interp.transpose().dot(gss.W*flux[:,:,n])
+	if gssState=="of":
 		# 2. Compute surface contributions 
 		# 2.1 evaluate '-' and '+' traces of conservative variables
 		QM=numpy.zeros([glb.Nfaces*glb.Nfp,glb.K,4])
@@ -389,7 +388,7 @@ def CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype):
 		# 2.5 Lift fluxes
 		for n in range(4):
 			nflux = LFflux[:,:,n] 
-			fluxRHS  = glb.LIFT.dot(glb.Fscale*nflux/2)
+			fluxRHS  = glb.LIFT.dot(glb.Fscale*nflux)
 			fluxRHS = numpy.linalg.inv(glb.V.dot(glb.V.transpose())).dot(fluxRHS)*glb.J
 			rhsQ[:,:,n] = rhsQ[:,:,n] - fluxRHS 
 	
@@ -414,16 +413,16 @@ def EulerRoe2D(nx, ny, QM, QP, gamma):
 	Nfields = 4
 	
 	# Rotate "-" trace momentum to face normal-tangent coordinates
-	rhouM = QM[:,:,1]
-	rhovM = QM[:,:,2]
-	EnerM = QM[:,:,3]
+	rhouM = QM[:,:,1].copy()
+	rhovM = QM[:,:,2].copy()
+	EnerM = QM[:,:,3].copy()
 	QM[:,:,1] =  nx*rhouM + ny*rhovM 
 	QM[:,:,2] = -ny*rhouM + nx*rhovM;
 	
 	# Rotate "+" trace momentum to face normal-tangent coordinates
-	rhouP = QP[:,:,1]
-	rhovP = QP[:,:,2]
-	EnerP = QP[:,:,3]
+	rhouP = QP[:,:,1].copy()
+	rhovP = QP[:,:,2].copy()
+	EnerP = QP[:,:,3].copy()
 	QP[:,:,1] =  nx*rhouP + ny*rhovP 
 	QP[:,:,2] = -ny*rhouP + nx*rhovP
 	
@@ -467,7 +466,7 @@ def EulerRoe2D(nx, ny, QM, QP, gamma):
 	fx[:,:,3] =fx[:,:,3]-(dW1*(H-u*c)	+dW2*(u**2+v**2)/2.	+dW3*v	+dW4*(H+u*c)	)/2.
 	
 	# rotate back to Cartesian
-	flux = fx
+	flux = fx.copy()
 	flux[:,:,1] = nx*fx[:,:,1] - ny*fx[:,:,2]
 	flux[:,:,2] = ny*fx[:,:,1] + nx*fx[:,:,2]
 	return(flux)
@@ -530,7 +529,7 @@ def testCurvedEuler(order=9):
 	glb.N = order
 	
 	# Define flux type
-	fluxtype = 'LF'
+	fluxtype = 'Roe'
 	
 	# Read in Mesh
 	filename = 'Grid/Euler2D/vortexA04.neu'

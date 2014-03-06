@@ -242,13 +242,13 @@ def testGauss3():
 	
 	# find integration with old methodn
 	nflux = numpy.ones([glb.Nfp*glb.Nfaces,glb.K])
-	fluxRHS  = glb.LIFT.dot(glb.Fscale*nflux/2)
+	fluxRHS  = glb.LIFT.dot(glb.Fscale*nflux)
 	fluxRHS = numpy.linalg.inv(glb.V.dot(glb.V.transpose())).dot(fluxRHS)*glb.J
 	Iold = fluxRHS 
 	
 	# find integration with new method
 	fl = numpy.ones([Ng*glb.Nfaces, glb.K])	
-	If = interp.transpose().dot(W/2.*fl)
+	If = interp.transpose().dot(W*fl)
 	Inew = If
 
 	# Match values
