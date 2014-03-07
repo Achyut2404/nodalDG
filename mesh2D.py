@@ -6,6 +6,146 @@
 # Reads fluent mesh files, and creates appropriate data for Nodal DG in 2 dimensions
 
 import numpy
+def readGmsh(Filename):
+	"""Reads 2D gmsh filed and generates appropriate mesh data"""
+
+	meshFile = open(Filename, 'r')
+	import globalVar2D as glb
+	lines = meshFile.readlines()
+	# First 3 lines are details of gmsh version
+	print lines[3][0:-1]
+	
+	# Check that physical names are defined for boundary conditions
+	if (lines[3][0:-1]=="$PhysicalNames"):
+		print "Reading physical names"
+		noPhy = int(readFloat(lines[4][0:-1])[0])
+		bcMap = numpy.zeros(noPhy) 
+		# Read only boundary physical names (Hard coded for 2D only)
+		cLine = 4  # Current line
+		cLine += 1
+		for n in range(noPhy):
+			if(int(lines[cLine][0])==1):
+				bcName = lines[cLine][5:-2]
+				bcNum = int(lines[cLine][2])
+				if bcName == "Inlet":
+					bcMap[bcNum-1] = glb.In	
+				if bcName == "Outlet":
+					bcMap[bcNum-1] = glb.Out
+				if bcName == "Wall":
+					bcMap[bcNum-1] = glb.Wall
+				if bcName == "Cyl":
+					bcMap[bcNum-1] = glb.Cyl
+			cLine = cLine + 1
+		cLine = cLine + 1 # Ditch the EndPhysicalName line
+		
+	# Read Nodes
+	print lines[cLine][0:-1]
+	if (lines[cLine][0:-1]=="$Nodes"):
+		print "Reading Nodes"
+		cLine = cLine + 1
+		Nv = int(readFloat(lines[cLine][0:-1])[0])
+		print "Number of nodes are %i"%Nv
+		cLine += 1
+		# read node coordinates
+		VX = numpy.array(range(Nv)).astype(float)
+		VY = numpy.array(range(Nv)).astype(float)
+		for i in range(Nv):
+			tmpx=readFloat(lines[cLine][0:-1])
+			VX[i] = tmpx[1]
+			VY[i] = tmpx[2]
+			cLine += 1
+		cLine += 1
+
+	# Read Elements
+	print lines[cLine][0:-1]
+	if (lines[cLine][0:-1]=="$Elements"):
+		print "Reading Elements"
+		cLine = cLine + 1
+		KAll = int(readFloat(lines[cLine][0:-1])[0])
+		print "Number of Boundary and surface Elements are %i"%KAll
+		cLine += 1
+	
+		lineStart = cLine
+		# Initiate bcFaces (stores line physical region values)
+		bcFaces = []
+		for i in range(noPhy):
+			bcFaces.append([])
+		
+		for n in range(KAll):
+			# Read a line/Physical map
+			tmpx = readFloat(lines[cLine][0:-1])
+		
+			if tmpx[1] == 1:
+				# if physical map is a line relate vortices to boundaries 
+				bcCode = int(tmpx[3])
+				v1 = int(tmpx[5])
+				v2 = int(tmpx[6])
+				bcFaces[bcCode-1].append([v1,v2])
+				KBoundary = n+1
+
+			cLine += 1	
+		
+		K = KAll - KBoundary
+		cLine = lineStart	
+		ele = 0
+		# Initiate EToV (With wrong size, size will be changed later on)
+		EToV = numpy.zeros([K,3]).astype(int).astype(int)
+
+		for n in range(KAll):
+			# Read a line/Physical map
+			tmpx = readFloat(lines[cLine][0:-1])
+		
+			if tmpx[1] ==2:
+				# If physical map is triangle, add element to EToV matrix
+				v1 = int(tmpx[5])
+				v2 = int(tmpx[6])
+				v3 = int(tmpx[7])
+				EToV[ele] = numpy.array([v1,v2,v3])
+				ele = ele+1
+				
+			cLine += 1	
+	
+		cLine += 1
+	
+	# Based on these two maps, create BCType
+	BCType = numpy.zeros([K,3]).astype(int)
+	bcId = 0
+	for eachBC in bcFaces:
+		for eachFace in eachBC:
+			v1 = eachFace[0]; v2 = eachFace[1]
+			# Find element and face for vortices
+			[k,f] = findFace(v1,v2,EToV)
+			# Attach value in BCType
+			BCType[k,f] = bcMap[bcId]
+		bcId += 1
+	
+	# Close file
+	meshFile.close()
+	return([Nv, VX, VY, K, EToV-1,BCType])
+	
+def findFace(v1,v2,EToV):
+	""" Find the face and element number of (v1,v2) from EToV"""
+	K = EToV.shape[0]
+	V = EToV.shape[1]
+	for k in range(K):
+		for v in range(V):
+			if EToV[k,v] == v1:
+				if v != V-1 and v != 0:
+					if EToV[k,v+1] == v2:
+						return(k,v)
+					if EToV[k,v-1] == v2:
+						return(k,v-1)
+				if v == 0:
+					if EToV[k,1] == v2:
+						return(k,0)
+					if EToV[k,-1] == v2:
+						return(k,V-1)
+				if v == V-1:
+					if EToV[k,0] == v2:
+						return(k,V-1)
+					if EToV[k,V-2] == v2:
+						return(k,V-2)
+	return(0)
 
 def createBC(Filename):
 	"""Reads 2D .neu files created by gambit and converts them to required mesh format"""
@@ -131,7 +271,8 @@ def create(Filename):
 	
 	# Close file
 	f.close()
-	return([Nv, VX, VY, K, EToV-1])
+	BCType=numpy.zeros([K,Nv])
+	return([Nv, VX, VY, K, EToV-1,BCType])
 
 def readFloat(line):
 	line=line.split(' ') 

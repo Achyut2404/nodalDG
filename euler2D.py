@@ -65,7 +65,7 @@ def testEuler(order=9):
 	glb.N = order
 	
 	# Read in Mesh
-	filename = 'Grid/Euler2D/vortexA04.neu'
+	filename = 'Grid/neu/Euler2D/vortexA04.neu'
 	InitialSolution = isentropicVortexIC2D
 	ExactSolution   = isentropicVortexIC2D
 	BCSolution      = isentropicVortexBC2D
@@ -532,7 +532,7 @@ def testCurvedEuler(order=9):
 	fluxtype = 'Roe'
 	
 	# Read in Mesh
-	filename = 'Grid/Euler2D/vortexA04.neu'
+	filename = 'Grid/neu/Euler2D/vortexA04.neu'
 	InitialSolution = isentropicVortexIC2D
 	ExactSolution   = isentropicVortexIC2D
 	BCSolution      = isentropicVortexBC2D

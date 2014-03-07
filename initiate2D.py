@@ -63,5 +63,4 @@ glb.Drw = (glb.V.dot(glb.Vr.transpose())).dot(numpy.linalg.inv((glb.V.dot(glb.V.
 glb.Dsw = (glb.V.dot(glb.Vs.transpose())).dot(numpy.linalg.inv((glb.V.dot(glb.V.transpose()))))
 
 # Build boundary maps
-glb.BCType=numpy.zeros([glb.K,glb.Nfaces])
-#functions2D.BuildBCMaps2D()
+functions2D.BuildBCMaps2D()

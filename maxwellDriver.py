@@ -15,9 +15,8 @@ glb.globalInit()
 glb.N = 12
 
 # Read in Mesh
-#[Nv, VX, VY, K, EToV] = MeshReaderGambit2D('Maxwell025.neu')
 import mesh2D
-[glb.Nv, glb.VX, glb.VY, glb.K, glb.EToV] = mesh2D.create('Grid/Maxwell2D/Maxwell025.neu')
+[glb.Nv, glb.VX, glb.VY, glb.K, glb.EToV,glb.BCType] = mesh2D.create('Grid/neu/Maxwell2D/Maxwell025.neu')
 
 # Initialize solver and construct grid and metric
 execfile("initiate2D.py")
