@@ -14,7 +14,6 @@ import globalVar2D as glb
 def limit2D(Q,time,solutionBC,gamma):
 	"""Applies 2D limiter on euler equation framework"""
 	# Calculate average matrix
-	global ave
 	ave = numpy.array([sum(glb.MassMatrix[:,i]) for i in range(glb.Np)])/2.0
 
 	# Calculate displacements from center
@@ -46,7 +45,6 @@ def limit2D(Q,time,solutionBC,gamma):
 	fL = (fnx**2 + fny**2)**0.5
 	fnx = fnx/fL
 	fny = fny/fL
-	global xc0,xc1,xc2,xc3,yc0,yc1,yc2,yc3
 	# Find element centers
 	xc0 = ave.dot(glb.x)
 	xc1 = xc0[e1]
@@ -219,7 +217,6 @@ def limit2D(Q,time,solutionBC,gamma):
 
 	# Check whether limiter needs to be applied again
 	tol = 1e-02	
-	global limrho
 	limrho = avrho + drho
 	ids = numpy.nonzero(limrho.flatten().min()<tol)[0]
 	while(len(ids)!=0):

@@ -464,6 +464,67 @@ def EulerRoe2D(nx, ny, QM, QP, gamma):
 	flux[:,:,2] = ny*fx[:,:,1] + nx*fx[:,:,2]
 	return(flux)
 
+def EulerHLL2D(nx, ny, QM, QP, gamma):
+	"""HLL flux defination for more than one strong shocks seperation"""
+	Nfields = 4
+	
+	# Rotate "-" trace momentum to face normal-tangent coordinates
+	rhouM = QM[:,:,1].copy()
+	rhovM = QM[:,:,2].copy()
+	EnerM = QM[:,:,3].copy()
+	QM[:,:,1] =  nx*rhouM + ny*rhovM 
+	QM[:,:,2] = -ny*rhouM + nx*rhovM;
+	
+	# Rotate "+" trace momentum to face normal-tangent coordinates
+	rhouP = QP[:,:,1].copy()
+	rhovP = QP[:,:,2].copy()
+	EnerP = QP[:,:,3].copy()
+	QP[:,:,1] =  nx*rhouP + ny*rhovP 
+	QP[:,:,2] = -ny*rhouP + nx*rhovP
+	
+	# Compute fluxes and primitive variables in rotated coordinates  
+	[fxQM,fyQM,rhoM,uM,vM,pM] = EulerFluxes2D(QM, gamma)
+	[fxQP,fyQP,rhoP,uP,vP,pP] = EulerFluxes2D(QP, gamma)
+	
+	# Compute enthalpy
+	HM = (EnerM+pM)/rhoM
+	HP = (EnerP+pP)/rhoP
+	
+	# Compute Roe average variables
+	rhoMs = rhoM**0.5
+	rhoPs = rhoP**0.5
+	
+	rho = rhoMs*rhoPs
+	u   = (rhoMs*uM + rhoPs*uP)/(rhoMs + rhoPs)
+	v   = (rhoMs*vM + rhoPs*vP)/(rhoMs + rhoPs)
+	H   = (rhoMs*HM + rhoPs*HP)/(rhoMs + rhoPs)
+	
+	c2  = (gamma-1)*(H - 0.5*(u**2 + v**2))
+	c = c2**0.5
+
+	# Calculate splus and sminus
+	cM = (gamma*pM/rhoM)**0.5
+	cP = (gamma*pP/rhoP)**0.5
+	smi = numpy.minimum(uM-cM,u-c)
+	spl = numpy.maximum(uP+cP,u+c)
+	
+	# Calculate HLL flux
+	fx = numpy.zeros(fxQM.shape)
+	tf1 = smi>0.
+	tf2 = numpy.logical_and(smi<=0.,spl>=0.)
+	tf3 = spl<0. 
+	fact1 = tf1*1. + tf2*spl/(spl-smi) + tf3*0.
+	fact2 = tf1*0 + tf2*(-smi/(spl-smi)) + tf3*1.
+	fact3 = tf1*0. + tf2*smi*spl/(spl-smi) + tf3*0.
+	for n in range(4):
+		fx[:,:,n] = (fact1*(fxQM[:,:,n]) + fact2*(fxQP[:,:,n]) + fact3*(QP[:,:,n] - QM[:,:,n]))
+
+	# rotate back to Cartesian
+	flux = fx.copy()
+	flux[:,:,1] = nx*fx[:,:,1] - ny*fx[:,:,2]
+	flux[:,:,2] = ny*fx[:,:,1] + nx*fx[:,:,2]
+
+	return(flux)
 def Euler2D(Q, FinalTime, ExactSolution, ExactSolutionBC, simData):	
 	"""Integrate 2D Euler equations using a 4th order low storage RK"""
 	
@@ -539,10 +600,10 @@ def testEuler(order=9):
 	glb.N = order
 	
 	# Define Simulation Data
-	fluxType = 'Roe'
+	fluxType = 'HLL'
 	gssState = 'on'
 	cubState = 'on'
-	limiter = 'on'
+	limiter = 'of'
 	simData = [fluxType,gssState,cubState,limiter]
 
 	# Read in Mesh
