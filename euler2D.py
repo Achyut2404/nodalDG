@@ -14,8 +14,7 @@ import matplotlib.pyplot as plt
 
 def isentropicVortexIC2D(x, y, time):
 	 
-	""" function Q = IsentropicVortexIC2D(x, y)
-	 Purpose: compute flow configuration given by
+	"""Purpose: compute flow configuration given by
 	     Y.C. Zhou, G.W. Wei / Journal of Computational Physics 189 (2003) 159 """
 	
 	# based flow parameters
@@ -41,8 +40,7 @@ def isentropicVortexIC2D(x, y, time):
 	return(Q)
 
 def isentropicVortexBC2D(xin, yin, nxin, nyin, mapI, mapO, mapW, mapC, Q, time):
-	"""function [Q] = IsentropicVortexBC2D(xin, yin, nxin, nyin, mapI, mapO, mapW, mapC, Q, time);
-	Purpose: Impose boundary conditions on 2D Euler equations on weak form"""
+	"""Purpose: Impose boundary conditions on 2D Euler equations on weak form"""
 	
 	Qbc = isentropicVortexIC2D(xin, yin, time)
 	mapB = numpy.concatenate([mapI,mapO,mapW])
@@ -55,7 +53,7 @@ def isentropicVortexBC2D(xin, yin, nxin, nyin, mapI, mapO, mapW, mapC, Q, time):
 	
 	return(Q)
 
-def testEuler(order=9):
+def testBasicEuler(order=9):
 	"""Driver script for solving the 2D Euler  Isentropic vortex equations"""
 	import globalVar2D as glb
 	glb.globalInit()
@@ -87,7 +85,7 @@ def testEuler(order=9):
 	
 	# Solve Problem
 	FinalTime = 1.0
-	Q = eulerSolve(Q, FinalTime, BCSolution)
+	Q = basicEulerSolve(Q, FinalTime, BCSolution)
 	
 	# Calculate error
 	err=Q-ExactSolution(glb.x,glb.y,FinalTime)
@@ -96,8 +94,7 @@ def testEuler(order=9):
 	return(Q,L2Err)
 
 def eulerDT2D(Q, gamma):
-	""" dt = eulerDT2D(Q, gamma)
-	 purpose: compute the time step dt for the compressible Euler equations"""
+	"""purpose: compute the time step dt for the compressible Euler equations"""
 	
 	import globalVar2D as glb
 	
@@ -119,9 +116,8 @@ def eulerDT2D(Q, gamma):
 	rhoprange = [min(rho1),max(rho1),min(p),max(p)]
 	return(dt)
 
-def eulerSolve(Q,FinalTime,BCSolution):
-	"""Q = eulerSolve(Q,FinalTime,BC)
-	Purpose  : Integrate 2D Euler equations using a 3rd order SSP-RK"""
+def basicEulerSolve(Q,FinalTime,BCSolution):
+	"""Purpose  : Integrate 2D Euler equations using a 3rd order SSP-RK"""
 	
 	import globalVar2D as glb
 	
@@ -154,7 +150,7 @@ def eulerSolve(Q,FinalTime,BCSolution):
 		
 		for INTRK in range(5):
 			# compute right hand side of compressible Euler equations
-			rhsQ  = EulerRHS2D(Q, time, BCSolution)
+			rhsQ  = basicEulerRHS2D(Q, time, BCSolution)
 		
 			#filter residual
 			for n in range(4):
@@ -176,10 +172,9 @@ def eulerSolve(Q,FinalTime,BCSolution):
 		tstep = tstep+1
 	return(Q)
 
-def EulerRHS2D(Q,time, ExactSolutionBC):
+def basicEulerRHS2D(Q,time, ExactSolutionBC):
 	
-	"""rhsQ = EulerRHS2D(Q,time, ExactSolutionBC);
-	Purpose: Evaluate RHS in 2D Euler equations, discretized on weak form
+	"""Purpose: Evaluate RHS in 2D Euler equations, discretized on weak form
 	            with a local Lax-Friedrich flux"""
 	
 	import globalVar2D as glb
@@ -238,8 +233,7 @@ def EulerRHS2D(Q,time, ExactSolutionBC):
 
 def EulerFluxes2D(Q, gamma):
 	     
-	""" function [F,G,rho,u,v,p] = EulerFluxes2D(Q, gamma)
-	Purpose: evaluate primitive variables and Euler flux functions"""
+	"""Purpose: evaluate primitive variables and Euler flux functions"""
 	
 	# extract conserved variables
 	rho = Q[:,:,0]; rhou = Q[:,:,1]; rhov = Q[:,:,2]; Ener = Q[:,:,3]
@@ -256,8 +250,8 @@ def EulerFluxes2D(Q, gamma):
 
 def EulerLF2D(lnx, lny, QM, QP, gamma):
 	
-	"""EulerLF2D(nx, ny, QM, QP, gamma) = flux
-	Purpose: compute Local Lax-Friedrichs/Rusonov fluxes for Euler equations"""
+	"""
+Purpose: compute Local Lax-Friedrichs/Rusonov fluxes for Euler equations"""
 	
 	import globalVar2D as glb
 	
@@ -286,18 +280,17 @@ def EulerLF2D(lnx, lny, QM, QP, gamma):
 		flux[:,:,n] = (lnx*(fP[:,:,n] + fM[:,:,n]) + lny*(gP[:,:,n] + gM[:,:,n]) + lemda*(QM[:,:,n] - QP[:,:,n]))/2.
 	return(flux)
 
-def CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype):
+def EulerRHS2D(Q, time, SolutionBC, simData):
 	
-	"""function [rhsQ] = CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype)
-	Purpose: compute right hand side residual for the compressible Euler 
+	"""Purpose: compute right hand side residual for the compressible Euler 
 	gas dynamics equations"""
 	
 	import globalVar2D as glb
 	import gaussFace2D as gss
 	import cuba2D as cub
 	
-	cubState="on"
-	gssState="on"
+	[fluxType,gssState,cubState,limiter] = simData
+	
 	if cubState=="on":
 		# 1.1 Interpolate solution to cubature nodes 
 		cQ = numpy.zeros([cub.Ncub, glb.K, 4])
@@ -353,13 +346,13 @@ def CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype):
 			gQP = SolutionBC(gss.x, gss.y, gss.nx, gss.ny, gss.mapI, gss.mapO, gss.mapW, gss.mapC, gQP, time)
 		
 		# 2.4 Evaluate surface flux functions with stabilization
-		if fluxtype=='LF':
+		if fluxType=='LF':
 			flux = EulerLF2D (gss.nx, gss.ny, gQM, gQP, gamma)
-		if fluxtype=='Roe':
+		if fluxType=='Roe':
 			flux = EulerRoe2D(gss.nx, gss.ny, gQM, gQP, gamma)
-		if fluxtype=='HLL':
+		if fluxType=='HLL':
 			flux = EulerHLL2D(gss.nx, gss.ny, gQM, gQP, gamma)
-		if fluxtype=='HLLC':
+		if fluxType=='HLLC':
 			flux = EulerHLLC2D(gss.nx, gss.ny, gQM, gQP, gamma)	
 		
 		# 2.5 Compute surface integral terms
@@ -380,9 +373,9 @@ def CurvedEulerRHS2D(Q, time, SolutionBC, fluxtype):
 		glb.Fy=glb.Fx.reshape([glb.Nfp*glb.Nfaces,glb.K])
 		QP = SolutionBC(glb.Fx, glb.Fy, glb.nx, glb.ny, glb.mapI, glb.mapO, glb.mapW, glb.mapC, QP, time)
 	
-		if fluxtype =='LF':	
+		if fluxType =='LF':	
 			LFflux = EulerLF2D (glb.nx, glb.ny, QM, QP, gamma)	
-		if fluxtype == 'Roe':
+		if fluxType == 'Roe':
 			LFflux = EulerRoe2D (glb.nx, glb.ny, QM, QP, gamma)
 		
 		# 2.5 Lift fluxes
@@ -471,20 +464,25 @@ def EulerRoe2D(nx, ny, QM, QP, gamma):
 	flux[:,:,2] = ny*fx[:,:,1] + nx*fx[:,:,2]
 	return(flux)
 
-def CurvedEuler2D(Q, FinalTime, ExactSolution, ExactSolutionBC, fluxtype):	
+def Euler2D(Q, FinalTime, ExactSolution, ExactSolutionBC, simData):	
 	"""Integrate 2D Euler equations using a 4th order low storage RK"""
 	
 	import globalVar2D as glb
 	import cuba2D as cub
 	import gaussFace2D as gss
-	# build cubature information
-	CubatureOrder = (glb.N+1)*3
-	cub.cubatureInitiate(CubatureOrder)
 	
-	# build Gauss node data
-	NGauss = (glb.N+1)*2
-	gss.gaussInit(NGauss)
+	[fluxType,gssState,cubState,limiter] = simData
 	
+	if cubState == 'on':
+		#build cubature information
+		CubatureOrder = (glb.N+1)*3
+		cub.cubatureInitiate(CubatureOrder)
+	
+	if gssState == 'on':
+		# build Gauss node data
+		NGauss = (glb.N+1)*2
+		gss.gaussInit(NGauss)
+
 	# compute initial timestep
 	gamma = 1.4
 	dt = eulerDT2D(Q, gamma)     # Adaptive time-stepping
@@ -492,6 +490,10 @@ def CurvedEuler2D(Q, FinalTime, ExactSolution, ExactSolutionBC, fluxtype):
 	time = 0.
 	rhsQ = 0.*Q
 	resQ = 0.*Q;
+	
+	if limiter == 'on':
+		import limiter2D as euLim
+		Q = euLim.limit2D(Q, time, ExactSolutionBC, gamma)
 	
 	# outer time step loop 
 	while (time<FinalTime):
@@ -501,14 +503,23 @@ def CurvedEuler2D(Q, FinalTime, ExactSolution, ExactSolutionBC, fluxtype):
 		print "time=%f"%time
 		
 		# 3rd order SSP Runge-Kutta
-		rhsQ  = CurvedEulerRHS2D(Q, time, ExactSolutionBC, fluxtype)
+		rhsQ  = EulerRHS2D(Q, time, ExactSolutionBC, simData)
 		Q1 = Q + dt*rhsQ
 		
-		rhsQ  = CurvedEulerRHS2D(Q1, time, ExactSolutionBC, fluxtype)
+		if limiter == 'on':
+			Q1 = euLim.limit2D(Q1, time, ExactSolutionBC, gamma)
+
+		rhsQ  = EulerRHS2D(Q1, time, ExactSolutionBC, simData)
 		Q2 = (3.*Q + Q1 + dt*rhsQ)/4.
 		
-		rhsQ  = CurvedEulerRHS2D(Q2, time, ExactSolutionBC, fluxtype)
+		if limiter == 'on':
+			Q2 = euLim.limit2D(Q1, time, ExactSolutionBC, gamma)
+		
+		rhsQ  = EulerRHS2D(Q2, time, ExactSolutionBC, simData)
 		Q = (Q + 2.*Q2 + 2.*dt*rhsQ)/3.
+		
+		if limiter == 'on':
+			Q = euLim.limit2D(Q, time, ExactSolutionBC, gamma)
 		
 		# Increment time and compute new timestep
 		time = time+dt
@@ -517,10 +528,9 @@ def CurvedEuler2D(Q, FinalTime, ExactSolution, ExactSolutionBC, fluxtype):
 		tstep = tstep+1
 	return(Q)
 
-#### Test function for curved Euler codes  and Roe flux####
-def testCurvedEuler(order=9):
-	"""Driver script for solving the 2D Euler Isentropic vortex equations
-	With higher order integrations"""
+#### Test function for curved Euler codes and Roe flux####
+def testEuler(order=9):
+	"""Test euler formulations, with different flux types, slopelimiters, and curved integrations"""
 	import globalVar2D as glb
 	glb.globalInit()
 	import mesh2D
@@ -528,9 +538,13 @@ def testCurvedEuler(order=9):
 	# Order of polynomials used for approximation 
 	glb.N = order
 	
-	# Define flux type
-	fluxtype = 'Roe'
-	
+	# Define Simulation Data
+	fluxType = 'Roe'
+	gssState = 'on'
+	cubState = 'on'
+	limiter = 'on'
+	simData = [fluxType,gssState,cubState,limiter]
+
 	# Read in Mesh
 	filename = 'Grid/neu/Euler2D/vortexA04.neu'
 	InitialSolution = isentropicVortexIC2D
@@ -556,10 +570,11 @@ def testCurvedEuler(order=9):
 	
 	# Solve Problem
 	FinalTime = 1.0
-	Q = CurvedEuler2D(Q, FinalTime, ExactSolution, BCSolution, fluxtype)
+	Q = Euler2D(Q, FinalTime, ExactSolution, BCSolution, simData)
 	
 	# Calculate error
 	err=Q-ExactSolution(glb.x,glb.y,FinalTime)
 	L2Err=[(numpy.average((err[:,:,i]**2).flatten()))**0.5 for i in range(4)]
 	
 	return(Q,L2Err)
+

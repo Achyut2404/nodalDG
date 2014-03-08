@@ -5,16 +5,20 @@
 #Jan S. Hesthaven. Nodal Discontinuous Galerkin Methods. Springer, 2008
 
 # 2-dimensional limiter function for euler equation, has to be modified for a more general purpose
- 
+
+# Ref: A Slope Limiting Procedure in Discontinuous Galerkin Finite Element Method for Gas Dynamic Applications.
+# Journal of Numerical Analysis and Modeling. Vol. 2 No. 2 Pages 163 
+
 import numpy
-import globalVar2d as glb
+import globalVar2D as glb
 def limit2D(Q,time,solutionBC,gamma):
 	"""Applies 2D limiter on euler equation framework"""
 	# Calculate average matrix
-	ave = numpy.array([sum(glb.massMatrix[:,i]) for i in range(glb.Np)])
+	global ave
+	ave = numpy.array([sum(glb.MassMatrix[:,i]) for i in range(glb.Np)])/2.0
 
 	# Calculate displacements from center
-	dropav = numpy.eye(glb.Np)-numpy.ones([glb.Np,1].dot(numpy.array([ave))
+	dropav = numpy.eye(glb.Np)-numpy.ones([glb.Np,1]).dot(numpy.array([ave]))
 	dx = dropav.dot(glb.x)
 	dy = dropav.dot(glb.y)
 
@@ -42,7 +46,7 @@ def limit2D(Q,time,solutionBC,gamma):
 	fL = (fnx**2 + fny**2)**0.5
 	fnx = fnx/fL
 	fny = fny/fL
-
+	global xc0,xc1,xc2,xc3,yc0,yc1,yc2,yc3
 	# Find element centers
 	xc0 = ave.dot(glb.x)
 	xc1 = xc0[e1]
@@ -64,19 +68,19 @@ def limit2D(Q,time,solutionBC,gamma):
 	id1 = numpy.nonzero(glb.BCType[:,0]!=0)[0]
 	id2 = numpy.nonzero(glb.BCType[:,1]!=0)[0]
 	id3 = numpy.nonzero(glb.BCType[:,2]!=0)[0]
-
+	
 	# Find ghost element centers
 	h1 = 2.*A0[id1]/fL[0,id1]
-	xc1[id1] = xc1[id1] + 2*fnx[0:id1]*h1
-	yc1[id1] = yc1[id1] + 2*fny[0:id1]*h1
+	xc1[id1] = xc1[id1] + 2*fnx[0,id1]*h1
+	yc1[id1] = yc1[id1] + 2*fny[0,id1]*h1
 
 	h2 = 2.*A0[id2]/fL[1,id2]
-	xc1[id2] = xc2[id2] + 2*fnx[1:id2]*h2
-	yc1[id2] = yc2[id2] + 2*fny[1:id2]*h2
+	xc1[id2] = xc2[id2] + 2*fnx[1,id2]*h2
+	yc1[id2] = yc2[id2] + 2*fny[1,id2]*h2
 
 	h3 = 2.*A0[id3]/fL[2,id3]
-	xc3[id3] = xc3[id3] + 2*fnx[2:id3]*h3
-	yc3[id3] = yc3[id3] + 2*fny[2:id3]*h3
+	xc3[id3] = xc3[id3] + 2*fnx[2,id3]*h3
+	yc3[id3] = yc3[id3] + 2*fny[2,id3]*h3
 
 	# Find averages of conserved variables and convert them back to primitive variables
 	rho = Q[:,:,0]
@@ -124,18 +128,17 @@ def limit2D(Q,time,solutionBC,gamma):
 	yB = numpy.array([yc1,yc2,yc3])
 
 	# Apply boundary conditions
-	pc = solutionBC(xB,yB,fnx,fny, mapW,mapI,mapO,mapC, pc,time)
+	pc = solutionBC(xB,yB,fnx,fny,mapW,mapI,mapO,mapC,pc,time)
 	
 	# Find primitive variables
-	pc = numpy.zeros([1,glb.K,4])
 	pc[:,:,1] = pc[:,:,1]/pc[:,:,0]
 	pc[:,:,2] = pc[:,:,2]/pc[:,:,0]
 	pc[:,:,3] = (gamma-1)*(pc[:,:,3]-0.5*pc[:,:,0]*(pc[:,:,1]**2+pc[:,:,2]**2))
 
 	# Calculate avg on interelement boundaries
-	idBV = [0,Nfp-1,Nfp,2*Nfp-1,3*Nfp-1,2*Nfp]     # Check the order of points
-	mapM = glb.mapM.reshape([glb.Nfp*glb.Nfaces,glb.K])[idBV,:]
-	mapP = glb.mapP.reshape([glb.Nfp*glb.Nfaces,glb.K])[idBV,:]
+	idBV = [0,glb.Nfp-1,glb.Nfp,2*glb.Nfp-1,3*glb.Nfp-1,2*glb.Nfp]     # Check the order of points
+	mapM = glb.vmapM.reshape([glb.Nfp*glb.Nfaces,glb.K])[idBV,:]
+	mapP = glb.vmapP.reshape([glb.Nfp*glb.Nfaces,glb.K])[idBV,:]
 	
 	rhoA = (rho.flatten()[mapM]+rho.flatten()[mapP])/2.0
 	rhouA = (rhou.flatten()[mapM]+rhou.flatten()[mapP])/2.0
@@ -144,19 +147,22 @@ def limit2D(Q,time,solutionBC,gamma):
 
 	uA = rhouA/rhoA
 	vA = rhovA/rhoA
-	pA = (gamma-1)*(enerA - 0.5*rhoA*(uA**2 + vA**2))
+	pA = (gamma-1)*(EnerA - 0.5*rhoA*(uA**2 + vA**2))
 
 	pva = numpy.zeros([glb.Nfaces*2,glb.K,4])
 	pva[:,:,0] = rhoA
 	pva[:,:,1] = uA
 	pva[:,:,2] = vA
 	pva[:,:,3] = pA
-	
+
+	#Initiate dV and aV
+	dV = numpy.zeros([glb.Np,glb.K,4])	
+	aV = numpy.zeros([glb.Np,glb.K,4])	
 	# Find gradient values (Do that for all primitive variables)
 	for n in range(4):
 		vc0 = pc0[0,:,n]
 		vc1 = pc[0,:,n]
-		vc2 = pc[1,;,n]
+		vc2 = pc[1,:,n]
 		vc3 = pc[2,:,n]
 		va = pva[:,:,n]
 
@@ -204,16 +210,16 @@ def limit2D(Q,time,solutionBC,gamma):
 		lvdyc0  = w1*dvdyc1 + w2*dvdyc2 + w3*dvdyc3
 		
 		# calculate cell averages
-		dV[:,;,n] = dx*numpy.ones([glb.Np,1]).dot(numpy.array([lvdxc0])) + dy*numpy.ones([glb.Np,1]).dot(numpy.array([lvdyc0]))
+		dV[:,:,n] = dx*numpy.ones([glb.Np,1]).dot(numpy.array([lvdxc0])) + dy*numpy.ones([glb.Np,1]).dot(numpy.array([lvdyc0]))
 		aV[:,:,n] = numpy.ones([glb.Np,1]).dot(numpy.array([vc0]))
 
 	# Get back variables from average and gradient values
-	avrho = aV[:,:,0]; avu = aV[:,:,1];  avv = aV[:,;,2];  avp = aV[:,:,3];	
-	drho = dV[:,:,0]; du = dV[:,:,1];  dv = dV[:,;,2];  dp = dV[:,:,3];
+	avrho = aV[:,:,0]; avu = aV[:,:,1];  avv = aV[:,:,2];  avp = aV[:,:,3];	
+	drho = dV[:,:,0]; du = dV[:,:,1];  dv = dV[:,:,2];  dp = dV[:,:,3];
 
 	# Check whether limiter needs to be applied again
 	tol = 1e-02	
-	
+	global limrho
 	limrho = avrho + drho
 	ids = numpy.nonzero(limrho.flatten().min()<tol)[0]
 	while(len(ids)!=0):
@@ -225,7 +231,7 @@ def limit2D(Q,time,solutionBC,gamma):
 	
 	# Calculate final values
 	limrhou = avrhou + avrho*du + avu*drho
-	limrhov = avrrhov + avrho*dv + avv*drho
+	limrhov = avrhov + avrho*dv + avv*drho
 	dEner = (1./(gamma-1))*dp + (0.5*drho)*(avu**2 + avv**2) + avrho*(avu*du + avv*dv)
 	limEner = avEner + dEner
 
@@ -237,7 +243,9 @@ def limit2D(Q,time,solutionBC,gamma):
 		print "Negative pressure! Correcting ..."
 		limEner.ravel[ids] = avEner.flatten()[ids] 
 	
-	limQ[:,:,0] = limrho; limQ[;,:,1] = limrhou; limQ[:,;,2] = limrhov; limQ[:,:,3] = limEner
+	# Final function
+	limQ = numpy.zeros([glb.Np,glb.K,4])	
+	limQ[:,:,0] = limrho; limQ[:,:,1] = limrhou; limQ[:,:,2] = limrhov; limQ[:,:,3] = limEner
 	
 	return(limQ)
 
