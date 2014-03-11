@@ -14,15 +14,15 @@ import matplotlib.pyplot as plt
 
 glb.globalInit()
 # Polynomial order used for approximation 
-glb.N = 9
+glb.N = 4
 
 # Read in Mesh
 import mesh2D
 # Check .neu mesh
-#[glb.Nv, glb.VX, glb.VY, glb.K, glb.EToV,glb.BCType] = mesh2D.createBC('Grid/neu/Euler2D/vortexA04.neu')
+#[glb.Nv, glb.VX, glb.VY, glb.K, glb.EToV,glb.BCType] = mesh2D.createBC('Grid/neu/Euler2D/fstepA001.neu')
 
 # Check gmsh mesh
-[glb.Nv, glb.VX, glb.VY, glb.K, glb.EToV,glb.BCType] = mesh2D.readGmsh('Grid/msh/2Dcyl.msh')
+[glb.Nv, glb.VX, glb.VY, glb.K, glb.EToV,glb.BCType] = mesh2D.readGmsh('Grid/msh/fStep.msh')
 
 ### Initialize solver and construct grid and metric
 execfile("initiate2D.py")

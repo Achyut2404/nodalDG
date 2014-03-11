@@ -511,16 +511,6 @@ def BuildBCMaps2D():
 	glb.mapS = numpy.nonzero(bnodes==glb.Slip)[0];         glb.vmapS = glb.vmapM[glb.mapS];
 	return()
 
-def plot2D(u):
-	import matplotlib.pyplot as plt
-	from mpl_toolkits.mplot3d import Axes3D
-	from matplotlib import cm
-	import globalVar2D as glb
-	fig = plt.figure()
-	ax = fig.add_subplot(111, projection='3d')
-	ax.scatter(glb.x,glb.y,u,c=u,cmap=cm.jet)
-	plt.show()
-	
 def advecRHS2D(u,a,timelocal):
 	
 	"""calculates Advection RHS for 2 dimensions"""
@@ -585,6 +575,11 @@ def eval2D(x,y,u):
 	vc = glb.EToV[:,2]
 	#Find which element it is in
 	k=findElement(x,y)
+	
+	# If there is no element containing this value of x and y, return a constant = 0 value
+	if type(k) == str:
+		return(0.)
+
 	umodal=glb.invV.dot(u).transpose()[k]
 	v1=numpy.array([glb.VX[va[k]],glb.VY[va[k]]])
 	v2=numpy.array([glb.VX[vb[k]],glb.VY[vb[k]]])
@@ -614,7 +609,8 @@ def findElement(x,y):
 		v3=numpy.array([glb.VX[vc][k],glb.VY[vc][k]])
 		if (inTriangle(x,y,v1,v2,v3)):
 			return(k)
-	return("Not found")
+	Val = "Point(%f,%f) Not found" %(x, y)
+	return(Val)
 
 def inTriangle(x,y,v1,v2,v3):
 	"""Check wheather (x,y) is in triangle (v1,v2,v3)"""
@@ -672,8 +668,19 @@ def advecSinInlet(x,y,a,t):
 	val=math.sin(math.pi*(x-ax*t))*math.sin(math.pi*(y-ay*t))
 	return(val)
 
-def plot2DFinal(u,N):
-	"""Plot good-time consuming plots, with number of points N"""
+def plot2Da(u):
+	""" Plots for 2D variables. These are quick plots, with no interpolation, for better quality plots see plot2Db(u,N)"""
+	import matplotlib.pyplot as plt
+	from mpl_toolkits.mplot3d import Axes3D
+	from matplotlib import cm
+	import globalVar2D as glb
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	ax.scatter(glb.x,glb.y,u,c=u,cmap=cm.jet)
+	plt.show()
+
+def plot2Db(u,N):
+	"""Plots for 2D variables, this are good quality plots and might take some time depending on N value. Go for plot2Da(u) if u need a quick plot, or decrease N value"""
 	from mpl_toolkits.mplot3d import Axes3D
 	from matplotlib import cm
 	from matplotlib.ticker import LinearLocator, FormatStrFormatter
@@ -683,8 +690,8 @@ def plot2DFinal(u,N):
 	ax = fig.gca(projection='3d')
 	dx=(glb.x.max()-glb.x.min())/N
 	dy=(glb.x.max()-glb.x.min())/N
-	X = numpy.arange(glb.x.min()+dx, glb.x.max()-dx, dx)
-	Y = numpy.arange(glb.y.min()+dy, glb.y.max()-dy, dy)
+	X = numpy.arange(glb.x.min(), glb.x.max()+dx, dx)
+	Y = numpy.arange(glb.y.min(), glb.y.max()+dy, dy)
 	X, Y = numpy.meshgrid(X, Y)
 	Z=numpy.copy(X)
 	for i in range(len(X.flatten())):
@@ -699,6 +706,53 @@ def plot2DFinal(u,N):
 	fig.colorbar(surf, shrink=0.5, aspect=5)
 	
 	plt.show()
+	return()
+
+def contour2Da(u):
+	""" Plots 2D contour plots for 2D variables. These are quick plots, with no interpolation, for better quality plots see contour2Db(u,N)"""
+	import matplotlib.pyplot as plt
+	plt.figure()
+	import globalVar2D as glb
+	plt.scatter(glb.x.flatten(),glb.y.flatten(),c = u.flatten())
+	plt.show()
+
+def contour2Db(u,N,Nu):
+	"""Plots contours for 2D variables, this are good quality plots and might take some time depending on N value. Go for contour2Da(u) if u need a quick plot, or decrease N value"""
+	import matplotlib
+	import matplotlib.cm as cm
+	import matplotlib.mlab as mlab
+	import matplotlib.pyplot as plt
+	import globalVar2D as glb
+
+	global dx, dy, X, Y	
+	# Define meths grid and find values at all the points
+	dx=(glb.x.max()-glb.x.min())/N
+	dy=(glb.x.max()-glb.x.min())/N
+	X = numpy.arange(glb.x.min(), glb.x.max()+dx, dx)
+	Y = numpy.arange(glb.y.min(), glb.y.max()+dy, dy)
+	X, Y = numpy.meshgrid(X, Y)
+	Z=numpy.copy(X)
+	for i in range(len(X.flatten())):
+		x=X.flatten()[i]
+		y=Y.flatten()[i]
+		Z.ravel()[i]=eval2D(float(x),float(y),u)
+	
+	# Plot X,Y,Z in contour plot
+	matplotlib.rcParams['xtick.direction'] = 'out'
+	matplotlib.rcParams['ytick.direction'] = 'out'
+
+	# Define levels for contours
+	du = (u.max()-u.min())/Nu
+	levels = numpy.arange(u.min(), u.max()+du, du)
+	
+	plt.figure()
+	CS = plt.contourf(X, Y, Z, levels)
+	plt.colorbar(CS)
+
+	# Plot boundary points
+	plt.scatter(glb.x.flatten()[glb.vmapB],glb.y.flatten()[glb.vmapB],s=8)
+	plt.show()
+
 	return()
 
 def cutOffFilter2D(Nc,frac):

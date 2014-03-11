@@ -32,12 +32,14 @@ def cubatureInitiate(CubatureOrder):
 	[rx,sx,ry,sy,J] = func.GeometricFactors2D(glb.x,glb.y, Dr,Ds)
 
 	# custom mass matrix per element
-	global mmCHOL,mm
-	mmCHOL = numpy.zeros([glb.Np, glb.Np, glb.K])
-	mm = numpy.zeros([glb.Np, glb.Np, glb.K])
-	for k in range(glb.K):
-		mm[:,:,k] = V.transpose().dot(numpy.diag(J[:,k]*W).dot(V))
-		mmCHOL[:,:,k] = numpy.linalg.cholesky(mm[:,:,k])
+	# This is only needed if there are any curved elements
+	if len(glb.curved) != 0:
+		global mmCHOL,mm
+		mmCHOL = numpy.zeros([glb.Np, glb.Np, glb.K])
+		mm = numpy.zeros([glb.Np, glb.Np, glb.K])
+		for k in range(glb.K):
+			mm[:,:,k] = V.transpose().dot(numpy.diag(J[:,k]*W).dot(V))
+			mmCHOL[:,:,k] = numpy.linalg.cholesky(mm[:,:,k])
 
 	# incorporate weights and Jacobian
 	global w

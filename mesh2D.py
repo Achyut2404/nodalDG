@@ -121,8 +121,36 @@ def readGmsh(Filename):
 	
 	# Close file
 	meshFile.close()
-	return([Nv, VX, VY, K, EToV-1,BCType])
 	
+	EToV = EToV-1
+
+	# Make sure EToV has triangle vortices in counter clockwise direction
+	# And accordingly change BCType matrix
+	for elem in range(K):
+		v1 = numpy.array([VX[EToV[elem,0]],VY[EToV[elem,0]]])
+		v2 = numpy.array([VX[EToV[elem,1]],VY[EToV[elem,1]]])
+		v3 = numpy.array([VX[EToV[elem,2]],VY[EToV[elem,2]]])
+		if elemNormal(v1,v2,v3) == -1:
+			v1New = EToV[elem,2];	bc1New = BCType[elem,1];
+			v2New = EToV[elem,1];	bc2New = BCType[elem,0];
+			v3New = EToV[elem,0];	bc3New = BCType[elem,2];
+			EToV[elem] = [v1New,v2New,v3New]
+			BCType[elem] = [bc1New,bc2New,bc3New]
+
+	return([Nv, VX, VY, K, EToV,BCType])
+
+def elemNormal(v1,v2,v3):
+	"""This function gives a normal to the triangle formed by vortices v1,v2 and v3. 
+	The function helps in checking the node element ordering"
+	+1 represents counter clock-wise and -1 represents clock-wise"""
+	v01 = v2-v1
+	v02 = v3-v1
+	
+	# Find direction of the cross product
+	crossP = v01[0]*v02[1] - v01[1]*v02[0]
+	
+	return(numpy.sign(crossP))
+
 def findFace(v1,v2,EToV):
 	""" Find the face and element number of (v1,v2) from EToV"""
 	K = EToV.shape[0]
@@ -237,6 +265,9 @@ def createBC(Filename):
 				
 	# Close file
 	f.close()
+	
+	# Make sure EToV has triangle vortices in counter clockwise direction
+	# For .neu file, it is the default ordering, so, no need to change anything
 	return([Nv, VX, VY, K, EToV-1,BCType])
 	
 def create(Filename):

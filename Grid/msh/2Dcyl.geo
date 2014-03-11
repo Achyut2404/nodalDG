@@ -1,5 +1,5 @@
-cl1 = 0.5;
-cl2 = 0.1;
+cl1 = 0.1;
+cl2 = 0.03;
 Point(1) = {-1, 1, 0, cl1};
 Point(2) = {-1, -1, 0, cl1};
 Point(3) = {1, 1, 0, cl1};
@@ -18,6 +18,5 @@ Line Loop(8) = {1, -4, -3, 2, -5};
 Plane Surface(8) = {8};
 Physical Line("Inlet") = {1};
 Physical Line("Outlet") = {3};
-Physical Line("Wall") = {2, 4};
-Physical Line("Cyl") = {5};
+Physical Line("Wall") = {2, 4, 5};
 Physical Surface("flowReg") = {8};

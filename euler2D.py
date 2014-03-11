@@ -589,6 +589,70 @@ def Euler2D(Q, FinalTime, ExactSolution, ExactSolutionBC, simData):
 		tstep = tstep+1
 	return(Q)
 
+#### Initial and boundary conditions for forward step shock simulation
+def fwdStepIC2D(x, y, time):
+	"""Initial condition for euler forward step shock case"""
+	import globalVar2D as glb
+	gamma = 1.4
+	rho = gamma*numpy.ones([glb.Np,glb.K])
+	p = numpy.ones([glb.Np,glb.K])
+	rhou = rho*3*numpy.ones([glb.Np,glb.K])
+	rhov = numpy.zeros([glb.Np,glb.K])
+	Ener = p/(gamma-1.0) + (rhou**2 + rhov**2)/(2.*rho)
+	
+	Q = numpy.zeros([glb.Np,glb.K,4])
+	Q[:,:,0] = rho
+	Q[:,:,1] = rhou
+	Q[:,:,2] = rhov
+	Q[:,:,3] = Ener
+	return(Q)
+
+def fwdStepBC2D(xin, yin, nxin, nyin, mapI, mapO, mapW, mapC, Q, time):
+	"""Boundary condition for euler forward step shock case
+	This is a case for Mach 0.3 input"""
+	gamma = 1.4
+	
+	# Get values from Q
+	rho = Q[:,:,0].copy()
+	rhou = Q[:,:,1].copy()	
+	rhov = Q[:,:,2].copy()
+	Ener = Q[:,:,3].copy()
+
+	# Define inflow boundaries as M=0.3
+	rhoin = gamma
+	uin = 3.0
+	vin = 0.0
+	pin = 1.0
+	Ein = pin/(gamma-1.0) + 0.5*rhoin*(uin**2 + vin**2)
+	
+	# Assign values
+	rho.ravel()[mapI] = rhoin
+	rhou.ravel()[mapI] = rhoin*uin
+	rhov.ravel()[mapI] = rhoin*vin
+	Ener.ravel()[mapI] = Ein
+	
+	# Define outflow conditions (Purely upwind conditions, do nothing)
+	# That will mean that your dF values are zero (zerogradient)
+
+	# Wall conditions (no penetraion and isothermal (T = const. along the normal)
+	rhoW = rho.flatten()[mapW]
+	rhouW = rhou.flatten()[mapW]
+	rhovW = rhov.flatten()[mapW]
+	nxW = nxin.flatten()[mapW]
+	nyW = nyin.flatten()[mapW]
+	
+	# apply no penetration at ghost elements
+	rhou.ravel()[mapW] = rhouW - 2*nxW*(nxW*rhouW + nyW*rhovW)
+	rhov.ravel()[mapW] = rhovW - 2*nyW*(nxW*rhouW + nyW*rhovW)
+	
+	# Return back positive field
+	Q[:,:,0] = rho
+	Q[:,:,1] = rhou
+	Q[:,:,2] = rhov
+	Q[:,:,3] = Ener
+
+	return(Q)
+	 
 #### Test function for curved Euler codes and Roe flux####
 def testEuler(order=9):
 	"""Test euler formulations, with different flux types, slopelimiters, and curved integrations"""
@@ -603,17 +667,19 @@ def testEuler(order=9):
 	fluxType = 'HLL'
 	gssState = 'on'
 	cubState = 'on'
-	limiter = 'of'
+	limiter = 'on'
 	simData = [fluxType,gssState,cubState,limiter]
 
 	# Read in Mesh
-	filename = 'Grid/neu/Euler2D/vortexA04.neu'
-	InitialSolution = isentropicVortexIC2D
-	ExactSolution   = isentropicVortexIC2D
-	BCSolution      = isentropicVortexBC2D
+	filename = 'Grid/msh/2Dcyl.msh'
+	#filename = 'Grid/neu/Euler2D/fstepA001.neu'
+	InitialSolution = fwdStepIC2D
+	ExactSolution   = fwdStepIC2D
+	BCSolution      = fwdStepBC2D
 
 	# read mesh from file
-	[glb.Nv, glb.VX, glb.VY, glb.K, glb.EToV, glb.BCType] = mesh2D.createBC(filename)
+	[glb.Nv, glb.VX, glb.VY, glb.K, glb.EToV, glb.BCType] = mesh2D.readGmsh(filename)
+	#[glb.Nv, glb.VX, glb.VY, glb.K, glb.EToV, glb.BCType] = mesh2D.createBC(filename)
 	
 	# set up nodes and basic operations
 	execfile("initiate2D.py")
@@ -630,12 +696,11 @@ def testEuler(order=9):
 	Q = InitialSolution(glb.x, glb.y, 0.)
 	
 	# Solve Problem
-	FinalTime = 1.0
+	FinalTime = 4.0
 	Q = Euler2D(Q, FinalTime, ExactSolution, BCSolution, simData)
 	
 	# Calculate error
 	err=Q-ExactSolution(glb.x,glb.y,FinalTime)
 	L2Err=[(numpy.average((err[:,:,i]**2).flatten()))**0.5 for i in range(4)]
-	
 	return(Q,L2Err)
 

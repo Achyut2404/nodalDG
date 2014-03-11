@@ -72,12 +72,13 @@ def gaussInit(NGauss):
 	sy = zer.copy()
 	J = zer.copy()
 	sJ = zer.copy()
+	
 	for f1 in range(glb.Nfaces):
 		VM = finterp[:,:,f1]
 		dVMdr = VM.dot(glb.Dr)
 		dVMds = VM.dot(glb.Ds)
-		ids1 = range((f1)*NGauss,(f1+1)*NGauss)
 		for k1 in range(glb.K):
+			ids1 = range((f1)*NGauss,(f1+1)*NGauss)
 			# calculate geometric factors at Gauss points
 			[grx,gsx,gry,gsy,gJ] = func2.GeometricFactors2D(glb.x[:,k1],glb.y[:,k1],dVMdr,dVMds)
 			# compute normals at Gauss points  (Take reference to functions2D.Normals2D())
@@ -161,6 +162,9 @@ def gaussInit(NGauss):
 def testGauss1(Ngauss=30):
 	"""Test normals and connectivity maps with gaussian face interpolation"""
 	
+	import globalVar2D as glb
+	import check2DInitiatation
+	
 	#Normals
 	gaussInit(Ngauss)
 	plt.figure(1)
@@ -225,14 +229,14 @@ def testGauss2():
 	print (abs(y-glb.y.flatten()[glb.vmapM].reshape([glb.Nfaces*glb.Nfp,glb.K]))).max()
 	return()
 
-def testGauss3():
+def testGauss3(order=30):
 	""" Check integration for arbitary fields"""
 	
 	# Initiate
 	import globalVar2D as glb
 	import check2DInitiatation
 	
-	gaussInit(30)
+	gaussInit(order)
 	
 	# Check weight values
 	print "Errors in weights"

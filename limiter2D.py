@@ -238,7 +238,7 @@ def limit2D(Q,time,solutionBC,gamma):
 	ids = numpy.nonzero(limp.flatten().min()<tol)[0]
 	if(len(ids)!=0):
 		print "Negative pressure! Correcting ..."
-		limEner.ravel[ids] = avEner.flatten()[ids] 
+		limEner.ravel()[ids] = avEner.flatten()[ids] 
 	
 	# Final function
 	limQ = numpy.zeros([glb.Np,glb.K,4])	
