@@ -574,7 +574,7 @@ def Euler2D(Q, FinalTime, ExactSolution, ExactSolutionBC, simData):
 		Q2 = (3.*Q + Q1 + dt*rhsQ)/4.
 		
 		if limiter == 'on':
-			Q2 = euLim.limit2D(Q1, time, ExactSolutionBC, gamma)
+			Q2 = euLim.limit2D(Q2, time, ExactSolutionBC, gamma)
 		
 		rhsQ  = EulerRHS2D(Q2, time, ExactSolutionBC, simData)
 		Q = (Q + 2.*Q2 + 2.*dt*rhsQ)/3.
@@ -671,6 +671,12 @@ def testEuler(order=9):
 	simData = [fluxType,gssState,cubState,limiter]
 
 	# Read in Mesh
+	#filename = 'Grid/neu/Euler2D/vortexA04.neu'
+	#InitialSolution = isentropicVortexIC2D
+	#ExactSolution   = isentropicVortexIC2D
+	#BCSolution      = isentropicVortexBC2D
+	
+	# Read in Mesh
 	filename = 'Grid/msh/2Dcyl.msh'
 	#filename = 'Grid/neu/Euler2D/fstepA001.neu'
 	InitialSolution = fwdStepIC2D
@@ -696,7 +702,7 @@ def testEuler(order=9):
 	Q = InitialSolution(glb.x, glb.y, 0.)
 	
 	# Solve Problem
-	FinalTime = 4.0
+	FinalTime = 1.0
 	Q = Euler2D(Q, FinalTime, ExactSolution, BCSolution, simData)
 	
 	# Calculate error

@@ -11,6 +11,7 @@
 
 import numpy
 import globalVar2D as glb
+
 def limit2D(Q,time,solutionBC,gamma):
 	"""Applies 2D limiter on euler equation framework"""
 	# Calculate average matrix
@@ -81,10 +82,10 @@ def limit2D(Q,time,solutionBC,gamma):
 	yc3[id3] = yc3[id3] + 2*fny[2,id3]*h3
 
 	# Find averages of conserved variables and convert them back to primitive variables
-	rho = Q[:,:,0]
-	rhou = Q[:,:,1]
-	rhov = Q[:,:,2]
-	Ener = Q[:,:,3]
+	rho = Q[:,:,0].copy()
+	rhou = Q[:,:,1].copy()
+	rhov = Q[:,:,2].copy()
+	Ener = Q[:,:,3].copy()
 
 	# Find average of conserved variables
 	rhoc = ave.dot(rho)
@@ -155,7 +156,10 @@ def limit2D(Q,time,solutionBC,gamma):
 
 	#Initiate dV and aV
 	dV = numpy.zeros([glb.Np,glb.K,4])	
-	aV = numpy.zeros([glb.Np,glb.K,4])	
+	aV = numpy.zeros([glb.Np,glb.K,4])
+
+	toMod = eleToMod(rho,pva,pc0,pc)		
+	
 	# Find gradient values (Do that for all primitive variables)
 	for n in range(4):
 		vc0 = pc0[0,:,n]
@@ -215,22 +219,28 @@ def limit2D(Q,time,solutionBC,gamma):
 	avrho = aV[:,:,0]; avu = aV[:,:,1];  avv = aV[:,:,2];  avp = aV[:,:,3];	
 	drho = dV[:,:,0]; du = dV[:,:,1];  dv = dV[:,:,2];  dp = dV[:,:,3];
 
+	# Initiate limited values
+	limrho = rho.copy()
+	limrhou = rhou.copy()
+	limrhov = rhov.copy()
+	limEner = Ener.copy()
+
 	# Check whether limiter needs to be applied again
-	tol = 1e-02	
-	limrho = avrho + drho
+	tol = 1e-02
+	limrho[:,toMod] = (avrho + drho)[:,toMod]
 	ids = numpy.nonzero(limrho.flatten().min()<tol)[0]
 	while(len(ids)!=0):
 		print "Negative density again! Correcting ..."
 		drho.ravel()[ids] = drho.flatten()[ids]/2.0
 		drho = drho.reshape(avrho.shape)
-		limrho = avrho + drho
+		limrho[:,toMod] = (avrho + drho)[:,toMod]
 		ids = numpy.nonzero(limrho.flatten().min()<tol)[0]
 	
 	# Calculate final values
-	limrhou = avrhou + avrho*du + avu*drho
-	limrhov = avrhov + avrho*dv + avv*drho
+	limrhou[:,toMod] = (avrhou + avrho*du + avu*drho)[:,toMod]
+	limrhov[:,toMod] = (avrhov + avrho*dv + avv*drho)[:,toMod]
 	dEner = (1./(gamma-1))*dp + (0.5*drho)*(avu**2 + avv**2) + avrho*(avu*du + avv*dv)
-	limEner = avEner + dEner
+	limEner[:,toMod] = (avEner + dEner)[:,toMod]
 
 	# Check if there is negative pressure anywhere
 	# If found put energy gradient zero at that point
@@ -243,6 +253,55 @@ def limit2D(Q,time,solutionBC,gamma):
 	# Final function
 	limQ = numpy.zeros([glb.Np,glb.K,4])	
 	limQ[:,:,0] = limrho; limQ[:,:,1] = limrhou; limQ[:,:,2] = limrhov; limQ[:,:,3] = limEner
-	
+
 	return(limQ)
 
+def eleToMod(rho,pva,pc0,pc):
+	"""Find elements that needs to be limited"""
+
+	vcf1 = (pva[0,:,:] + pva[1,:,:])/2.0
+	vcf2 = (pva[2,:,:] + pva[3,:,:])/2.0
+	vcf3 = (pva[4,:,:] + pva[5,:,:])/2.0
+	
+	toMod = []
+
+	for k in range(glb.K):
+		# Add if negative density achieved
+		tol = 1e-02
+		fact = 2.0
+		if rho.min<tol:
+			print "Negative Density"
+			toMod.append(k)
+			continue
+		for n in range(4):
+			# Face 1
+			if abs(pc0[0,k,n] - vcf1[k,n]) > abs(pc0[0,k,n] - pc[0,k,n])*fact:
+				toMod.append(k)
+				break
+		 	if abs(pc0[0,k,n] - vcf1[k,n]) > abs(pc0[0,k,n] - pc[1,k,n])*fact:
+				toMod.append(k)
+				break
+			if abs(pc0[0,k,n] - vcf1[k,n]) > abs(pc0[0,k,n] - pc[2,k,n])*fact:
+				toMod.append(k)
+				break
+			#Face2
+			if abs(pc0[0,k,n] - vcf2[k,n]) > abs(pc0[0,k,n] - pc[0,k,n])*fact:
+				toMod.append(k)
+				break
+		 	if abs(pc0[0,k,n] - vcf2[k,n]) > abs(pc0[0,k,n] - pc[1,k,n])*fact:
+				toMod.append(k)
+				break
+			if abs(pc0[0,k,n] - vcf2[k,n]) > abs(pc0[0,k,n] - pc[2,k,n])*fact:
+				toMod.append(k)
+				break
+			# Face 3
+			if abs(pc0[0,k,n] - vcf3[k,n]) > abs(pc0[0,k,n] - pc[0,k,n])*fact:
+				toMod.append(k)
+				break
+		 	if abs(pc0[0,k,n] - vcf3[k,n]) > abs(pc0[0,k,n] - pc[1,k,n])*fact:
+				toMod.append(k)
+				break
+			if abs(pc0[0,k,n] - vcf3[k,n]) > abs(pc0[0,k,n] - pc[2,k,n])*fact:
+				toMod.append(k)
+				break
+	return(toMod)
