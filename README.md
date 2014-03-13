@@ -8,6 +8,6 @@ Currently, the code works for 1D and 2D linear and non-linear hyperbolic equatio
 
 python -c "import euler2D as eul; eul.testCurvedEuler()"   will solve a isentropic vortex problem.
 
-![alt tag](https://github.com/Achyut2404/nodalDG/master/results/bowShock.png)
-![alt tag](https://github.com/Achyut2404/nodalDG/master/results/fwdStepM3_HD.png)
+![alt tag](https://raw.github.com/Achyut2404/nodalDG/master/results/bowShock.png)
+![alt tag](https://raw.github.com/Achyut2404/nodalDG/master/results/fwdStepM3_HD.png)
 
